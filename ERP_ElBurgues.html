@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EL BURGUÉS — ERP Financiero</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --rojo: #8B0000;
+  --dorado: #C9A84C;
+  --negro: #111111;
+  --bg: #f7f5f2;
+  --bg2: #ffffff;
+  --txt: #1a1a1a;
+  --txt2: #666;
+  --borde: #e0ddd8;
+  --verde: #3B6D11;
+  --verde-bg: #EAF3DE;
+  --rojo-bg: #FCEBEB;
+  --rojo-txt: #A32D2D;
+  --sidebar-w: 200px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--txt); font-size: 14px; }
+
+.app { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: var(--sidebar-w); background: var(--negro); color: #fff;
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.sidebar-brand {
+  padding: 20px 16px 16px;
+  border-bottom: 0.5px solid rgba(255,255,255,0.12);
+}
+.brand-logo {
+  width: 38px; height: 38px; background: var(--rojo); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600; color: var(--dorado); margin-bottom: 10px;
+}
+.brand-name { font-size: 15px; font-weight: 500; color: #fff; }
+.brand-sub { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+.nav { flex: 1; padding: 12px 0; }
+.nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 16px; font-size: 13px; color: rgba(255,255,255,0.65);
+  cursor: pointer; border-radius: 0; transition: background 0.12s;
+}
+.nav-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
+.nav-item.active { background: var(--rojo); color: #fff; }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+.nav-section { padding: 14px 16px 4px; font-size: 10px; color: rgba(255,255,255,0.3); letter-spacing: 0.08em; text-transform: uppercase; }
+
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar {
+  background: var(--bg2); border-bottom: 0.5px solid var(--borde);
+  padding: 0 24px; height: 52px; display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.topbar-title { font-size: 15px; font-weight: 500; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.badge-regime {
+  font-size: 11px; padding: 3px 8px; border-radius: 20px;
+  background: var(--verde-bg); color: var(--verde); border: 0.5px solid #C0DD97;
+}
+.badge-uit { font-size: 11px; color: var(--txt2); }
+.avatar {
+  width: 30px; height: 30px; border-radius: 50%; background: var(--rojo);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 500; color: #fff;
+}
+
+.content { flex: 1; overflow-y: auto; padding: 24px; }
+
+.page { display: none; }
+.page.active { display: block; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi-card {
+  background: var(--bg2); border: 0.5px solid var(--borde); border-radius: 10px;
+  padding: 14px 16px;
+}
+.kpi-label { font-size: 11px; color: var(--txt2); margin-bottom: 6px; }
+.kpi-val { font-size: 22px; font-weight: 500; color: var(--txt); }
+.kpi-val.rojo { color: var(--rojo); }
+.kpi-val.verde { color: var(--verde); }
+.kpi-sub { font-size: 11px; color: var(--txt2); margin-top: 4px; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+
+.card {
+  background: var(--bg2); border: 0.5px solid var(--borde); border-radius: 10px;
+  padding: 16px 18px;
+}
+.card-title { font-size: 13px; font-weight: 500; margin-bottom: 14px; color: var(--txt); display: flex; align-items: center; gap: 8px; }
+.card-title svg { width: 15px; height: 15px; color: var(--rojo); }
+
+.chart-wrap { height: 200px; position: relative; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-size: 11px; font-weight: 500; color: var(--txt2); padding: 8px 10px; border-bottom: 0.5px solid var(--borde); }
+td { padding: 9px 10px; border-bottom: 0.5px solid var(--borde); color: var(--txt); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg); }
+
+.badge { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 20px; font-weight: 500; }
+.badge-verde { background: var(--verde-bg); color: var(--verde); }
+.badge-rojo { background: var(--rojo-bg); color: var(--rojo-txt); }
+.badge-amber { background: #FAEEDA; color: #633806; }
+.badge-gray { background: #F1EFE8; color: #5F5E5A; }
+
+.balance-check {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;
+  font-size: 13px; font-weight: 500;
+}
+.balance-ok { background: var(--verde-bg); color: var(--verde); border: 0.5px solid #C0DD97; }
+.balance-err { background: var(--rojo-bg); color: var(--rojo-txt); border: 0.5px solid #F09595; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: 12px; color: var(--txt2); }
+.form-group input, .form-group select {
+  padding: 8px 10px; border: 0.5px solid var(--borde); border-radius: 6px;
+  font-size: 13px; background: var(--bg2); color: var(--txt);
+}
+.form-group input:focus, .form-group select:focus { outline: none; border-color: var(--rojo); }
+
+.btn-primary {
+  background: var(--rojo); color: #fff; border: none;
+  padding: 9px 18px; border-radius: 7px; font-size: 13px;
+  cursor: pointer; font-weight: 500;
+}
+.btn-secondary {
+  background: var(--bg2); color: var(--txt); border: 0.5px solid var(--borde);
+  padding: 9px 18px; border-radius: 7px; font-size: 13px; cursor: pointer;
+}
+.btn-sm {
+  padding: 5px 10px; font-size: 11px; border-radius: 6px;
+  border: 0.5px solid var(--borde); background: var(--bg2);
+  color: var(--txt2); cursor: pointer;
+}
+.btn-sm:hover { background: var(--bg); }
+
+.pos-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.pos-item {
+  background: var(--bg2); border: 0.5px solid var(--borde); border-radius: 8px;
+  padding: 12px; cursor: pointer; text-align: center;
+}
+.pos-item:hover { border-color: var(--rojo); }
+.pos-item:active { background: var(--bg); }
+.pos-item-name { font-size: 12px; font-weight: 500; margin-bottom: 4px; }
+.pos-item-price { font-size: 14px; font-weight: 500; color: var(--rojo); }
+
+.order-list { max-height: 280px; overflow-y: auto; }
+.order-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 0.5px solid var(--borde); font-size: 13px;
+}
+.order-row:last-child { border-bottom: none; }
+.order-total {
+  display: flex; justify-content: space-between;
+  padding: 12px 0 4px; font-weight: 500; font-size: 14px;
+  border-top: 0.5px solid var(--borde); margin-top: 8px;
+}
+
+.schedule-header {
+  display: grid; grid-template-columns: 40px 80px 90px 80px 80px 80px 90px;
+  gap: 4px; padding: 6px 10px;
+  font-size: 11px; font-weight: 500; color: var(--txt2);
+  background: var(--bg); border-radius: 6px 6px 0 0;
+}
+.schedule-row {
+  display: grid; grid-template-columns: 40px 80px 90px 80px 80px 80px 90px;
+  gap: 4px; padding: 7px 10px; font-size: 12px;
+  border-bottom: 0.5px solid var(--borde);
+}
+.schedule-row:hover { background: var(--bg); }
+
+.plit-table { width: 100%; }
+.plit-table th { background: var(--bg); }
+
+.sunat-alert {
+  background: #FAEEDA; border: 0.5px solid #FAC775;
+  border-radius: 8px; padding: 12px 14px; margin-bottom: 12px;
+  font-size: 13px; color: #633806;
+}
+.sunat-alert strong { display: block; font-size: 12px; margin-bottom: 2px; }
+
+.section-head { font-size: 13px; font-weight: 500; margin-bottom: 12px; color: var(--txt); }
+
+.inv-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.inv-bar-bg { flex: 1; height: 6px; background: var(--borde); border-radius: 3px; }
+.inv-bar { height: 6px; border-radius: 3px; background: var(--rojo); }
+
+.dep-timeline { display: flex; gap: 2px; margin-top: 8px; }
+.dep-seg { height: 6px; flex: 1; border-radius: 2px; background: var(--borde); }
+.dep-seg.done { background: var(--rojo); }
+.dep-seg.current { background: var(--dorado); }
+</style>
+</head>
+<body>
+<div class="app">
+
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-logo">EB</div>
+    <div class="brand-name">El Burgués</div>
+    <div class="brand-sub">ERP Financiero v1.0</div>
+  </div>
+  <div class="nav">
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" onclick="showPage('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-section">Finanzas</div>
+    <div class="nav-item" onclick="showPage('inversion')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      Inversión inicial
+    </div>
+    <div class="nav-item" onclick="showPage('financiamiento')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 5-5"/></svg>
+      Financiamiento
+    </div>
+    <div class="nav-item" onclick="showPage('eeff')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Estados financieros
+    </div>
+    <div class="nav-item" onclick="showPage('tributacion')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Tributación SUNAT
+    </div>
+    <div class="nav-section">Operaciones</div>
+    <div class="nav-item" onclick="showPage('pos')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Punto de venta
+    </div>
+    <div class="nav-item" onclick="showPage('inventario')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      Inventario
+    </div>
+    <div class="nav-section">Sistema</div>
+    <div class="nav-item" onclick="showPage('facturacion')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+      Facturación
+    </div>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <span class="topbar-title" id="topbarTitle">Dashboard</span>
+    <div class="topbar-right">
+      <span class="badge-regime">MYPE Tributario</span>
+      <span class="badge-uit">UIT 2026: S/ 5,500</span>
+      <div class="avatar">AD</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Total activos</div>
+          <div class="kpi-val">S/ 113,944</div>
+          <div class="kpi-sub">Inversión total</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Ventas del mes</div>
+          <div class="kpi-val verde">S/ 38,475</div>
+          <div class="kpi-sub">2,565 órdenes</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Ticket promedio</div>
+          <div class="kpi-val">S/ 15.00</div>
+          <div class="kpi-sub">Objetivo S/ 13–20</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Margen neto</div>
+          <div class="kpi-val verde">22.4%</div>
+          <div class="kpi-sub">Utilidad S/ 8,618</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">IGV por pagar</div>
+          <div class="kpi-val rojo">S/ 4,116</div>
+          <div class="kpi-sub">Vence según RUC</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Ratio liquidez</div>
+          <div class="kpi-val verde">1.42</div>
+          <div class="kpi-sub">Saludable (&gt;1.0)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">ROI</div>
+          <div class="kpi-val">7.6%</div>
+          <div class="kpi-sub">Mensual acumulado</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">EBITDA mensual</div>
+          <div class="kpi-val verde">S/ 10,240</div>
+          <div class="kpi-sub">+Dep. S/ 1,622</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Ventas mensuales (S/)</div>
+          <div class="chart-wrap"><canvas id="chartVentas"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Distribución inversión</div>
+          <div class="chart-wrap"><canvas id="chartInversion"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Top productos por ingresos</div>
+          <div class="chart-wrap" style="height:180px"><canvas id="chartTop"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Flujo de caja — 6 meses</div>
+          <div class="chart-wrap"><canvas id="chartFlujo"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Últimas ventas del día</div>
+        <table>
+          <thead><tr><th>#</th><th>Hora</th><th>Producto</th><th>Cant.</th><th>Comprobante</th><th>Total</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td>0042</td><td>20:34</td><td>Smash Burger Doble</td><td>2</td><td>B001-0042</td><td>S/ 40.00</td><td><span class="badge badge-verde">Emitido</span></td></tr>
+            <tr><td>0041</td><td>20:18</td><td>Hamburguesa Carne Clásica + Salchipapa</td><td>1</td><td>B001-0041</td><td>S/ 23.00</td><td><span class="badge badge-verde">Emitido</span></td></tr>
+            <tr><td>0040</td><td>19:55</td><td>Combo Pollo Crispy x2</td><td>2</td><td>F001-0012</td><td>S/ 36.00</td><td><span class="badge badge-verde">Emitido</span></td></tr>
+            <tr><td>0039</td><td>19:42</td><td>Hamburguesa Pollo Clásica</td><td>3</td><td>B001-0039</td><td>S/ 39.00</td><td><span class="badge badge-verde">Emitido</span></td></tr>
+            <tr><td>0038</td><td>19:20</td><td>Salchipapa Especial + Bebida</td><td>1</td><td>B001-0038</td><td>S/ 16.00</td><td><span class="badge badge-amber">Pendiente CDR</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- INVERSIÓN INICIAL -->
+    <div class="page" id="page-inversion">
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi-card"><div class="kpi-label">Tangibles</div><div class="kpi-val">S/ 75,424</div><div class="kpi-sub">Cuenta PCGE 33/35/36</div></div>
+        <div class="kpi-card"><div class="kpi-label">Intangibles</div><div class="kpi-val">S/ 8,640</div><div class="kpi-sub">Cuenta PCGE 34</div></div>
+        <div class="kpi-card"><div class="kpi-label">Capital de trabajo</div><div class="kpi-val">S/ 29,880</div><div class="kpi-sub">Primer mes operación</div></div>
+        <div class="kpi-card"><div class="kpi-label">Dep. mensual total</div><div class="kpi-val rojo">S/ 1,622</div><div class="kpi-sub">Tasas SUNAT oficiales</div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">Activos tangibles — Cuenta PCGE 33/35/36</div>
+        <table>
+          <thead><tr><th>PCGE</th><th>Activo</th><th>Área</th><th>Costo</th><th>Vida útil</th><th>Dep./mes</th><th>VNL actual</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td>333</td><td>Plancha a gas cromada 90cm</td><td>Cocina</td><td>S/ 3,450</td><td>10 años</td><td>S/ 28.75</td><td>S/ 3,335</td><td><span class="badge badge-verde">Activo</span></td></tr>
+            <tr><td>333</td><td>Freidora industrial 2 tinas 25L</td><td>Cocina</td><td>S/ 4,800</td><td>10 años</td><td>S/ 40.00</td><td>S/ 4,640</td><td><span class="badge badge-verde">Activo</span></td></tr>
+            <tr><td>333</td><td>Campana extractora AISI 304</td><td>Cocina</td><td>S/ 3,200</td><td>10 años</td><td>S/ 26.67</td><td>S/ 3,093</td><td><span class="badge badge-verde">Activo</span></td></tr>
+            <tr><td>333</td><td>Conservador vertical 2 puertas</td><td>Cocina</td><td>S/ 7,200</td><td>10 años</td><td>S/ 60.00</td><td>S/ 6,960</td><td><span class="badge badge-verde">Activo</span></td></tr>
+            <tr><td>333</td><td>Sistema GLP centralizado</td><td>Cocina</td><td>S/ 1,650</td><td>10 años</td><td>S/ 13.75</td><td>S/ 1,595</td><td><span class="badge badge-verde">Activo</span></td></tr>
+            <tr><td>335</td><td>Juego mesas industriales x10</td><td>Salón</td><td>S/ 6,800</td><td>10 años</td><td>S/ 56.67</td><td>S/ 6,573</td><td><span class="badge badge-verde">Activo</span></td></tr>
+            <tr><td>335</td><td>Sillas metálicas x40</td><td>Salón</td><td>S/ 1,920</td><td>10 años</td><td>S/ 16.00</td><td>S/ 1,856</td><td><span class="badge badge-verde">Activo</span></td></tr>
+            <tr><td>335</td><td>Barra despacho + mueble caja</td><td>Ventas</td><td>S/ 2,850</td><td>10 años</td><td>S/ 23.75</td><td>S/ 2,755</td><td><span class="badge badge-verde">Activo</span></td></tr>
+            <tr><td>336</td><td>Smart TV 43" menú board x2</td><td>Ventas</td><td>S/ 2,300</td><td>5 años</td><td>S/ 38.33</td><td>S/ 2,147</td><td><span class="badge badge-verde">Activo</span></td></tr>
+            <tr><td>336</td><td>Sistema POS all-in-one táctil</td><td>Ventas</td><td>S/ 2,250</td><td>5 años</td><td>S/ 37.50</td><td>S/ 2,100</td><td><span class="badge badge-verde">Activo</span></td></tr>
+            <tr><td>336</td><td>Computadora administrativa</td><td>Oficina</td><td>S/ 1,950</td><td>4 años</td><td>S/ 40.63</td><td>S/ 1,787</td><td><span class="badge badge-verde">Activo</span></td></tr>
+            <tr><td>331</td><td>Letrero fachada LED relieve</td><td>Fachada</td><td>S/ 3,800</td><td>5 años</td><td>S/ 63.33</td><td>S/ 3,547</td><td><span class="badge badge-verde">Activo</span></td></tr>
+            <tr><td>331</td><td>Remodelación e interiorismo</td><td>General</td><td>S/ 19,454</td><td>33 años</td><td>S/ 49.22</td><td>S/ 19,257</td><td><span class="badge badge-verde">Activo</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Intangibles — Cuenta PCGE 34</div>
+          <table>
+            <thead><tr><th>PCGE</th><th>Bien</th><th>Costo</th><th>V. útil</th><th>Amort./mes</th></tr></thead>
+            <tbody>
+              <tr><td>341</td><td>Licencia municipal + ITSE</td><td>S/ 500</td><td>1 año</td><td>S/ 41.67</td></tr>
+              <tr><td>341</td><td>Registro marca INDECOPI</td><td>S/ 535</td><td>10 años</td><td>S/ 4.46</td></tr>
+              <tr><td>341</td><td>Constitución empresa SAC</td><td>S/ 875</td><td>3 años</td><td>S/ 24.31</td></tr>
+              <tr><td>343</td><td>Sistema facturación electrónica</td><td>S/ 300</td><td>4 años</td><td>S/ 6.25</td></tr>
+              <tr><td>346</td><td>Publicidad digital apertura</td><td>S/ 500</td><td>2 años</td><td>S/ 20.83</td></tr>
+              <tr><td>349</td><td>Diseño logo + identidad</td><td>S/ 400</td><td>5 años</td><td>S/ 6.67</td></tr>
+              <tr><td>349</td><td>Dominio web + correo corp.</td><td>S/ 180</td><td>1 año</td><td>S/ 15.00</td></tr>
+              <tr><td>349</td><td>Capacitación BPM + asesoría</td><td>S/ 550</td><td>2 años</td><td>S/ 22.92</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-title">Capital de trabajo — primer mes</div>
+          <table>
+            <thead><tr><th>Ítem</th><th>Mensual</th><th>% del total</th></tr></thead>
+            <tbody>
+              <tr><td>Alquiler local comercial</td><td>S/ 4,500</td><td>
+                <div class="inv-row"><div class="inv-bar-bg"><div class="inv-bar" style="width:15%"></div></div><span>15%</span></div>
+              </td></tr>
+              <tr><td>Planilla 4 personas</td><td>S/ 6,100</td><td>
+                <div class="inv-row"><div class="inv-bar-bg"><div class="inv-bar" style="width:20.4%"></div></div><span>20%</span></div>
+              </td></tr>
+              <tr><td>Materia prima e insumos</td><td>S/ 14,850</td><td>
+                <div class="inv-row"><div class="inv-bar-bg"><div class="inv-bar" style="width:49.7%"></div></div><span>50%</span></div>
+              </td></tr>
+              <tr><td>Packaging kraft con logo</td><td>S/ 2,430</td><td>
+                <div class="inv-row"><div class="inv-bar-bg"><div class="inv-bar" style="width:8.1%"></div></div><span>8%</span></div>
+              </td></tr>
+              <tr><td>Servicios básicos</td><td>S/ 1,200</td><td>
+                <div class="inv-row"><div class="inv-bar-bg"><div class="inv-bar" style="width:4%"></div></div><span>4%</span></div>
+              </td></tr>
+              <tr><td>Marketing Meta Ads</td><td>S/ 800</td><td>
+                <div class="inv-row"><div class="inv-bar-bg"><div class="inv-bar" style="width:2.7%"></div></div><span>3%</span></div>
+              </td></tr>
+              <tr style="font-weight:500"><td>Total KT</td><td>S/ 29,880</td><td>100%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- FINANCIAMIENTO -->
+    <div class="page" id="page-financiamiento">
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi-card"><div class="kpi-label">Capital propio 70%</div><div class="kpi-val verde">S/ 79,761</div><div class="kpi-sub">Aporte socios</div></div>
+        <div class="kpi-card"><div class="kpi-label">Financiamiento externo 30%</div><div class="kpi-val rojo">S/ 34,183</div><div class="kpi-sub">Préstamo bancario</div></div>
+        <div class="kpi-card"><div class="kpi-label">Cuota mensual</div><div class="kpi-val">S/ 779</div><div class="kpi-sub">Método francés</div></div>
+        <div class="kpi-card"><div class="kpi-label">TEA referencial</div><div class="kpi-val">18.5%</div><div class="kpi-sub">MYPE Caja Trujillo</div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">Simulador de amortización</div>
+        <div class="form-row">
+          <div class="form-group"><label>Monto del préstamo (S/)</label><input type="number" id="sim-monto" value="34183" oninput="calcAmort()"></div>
+          <div class="form-group"><label>TEA (%)</label><input type="number" id="sim-tea" value="18.5" step="0.1" oninput="calcAmort()"></div>
+          <div class="form-group"><label>Plazo (meses)</label><input type="number" id="sim-plazo" value="60" oninput="calcAmort()"></div>
+          <div class="form-group"><label>Método</label>
+            <select id="sim-metodo" onchange="calcAmort()">
+              <option value="francesa">Francesa (cuota fija)</option>
+              <option value="alemana">Alemana (capital fijo)</option>
+              <option value="americana">Americana (bullet)</option>
+            </select>
+          </div>
+        </div>
+        <div id="sim-resumen" style="display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap"></div>
+        <div style="overflow-x:auto;max-height:280px;overflow-y:auto">
+          <div class="schedule-header"><span>#</span><span>Fecha</span><span>Saldo inicial</span><span>Amort.</span><span>Interés</span><span>ITF</span><span>Cuota total</span></div>
+          <div id="scheduleBody"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ESTADOS FINANCIEROS -->
+    <div class="page" id="page-eeff">
+      <div class="balance-check balance-ok" id="balanceCheck">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>
+        Balance cuadrado: ACTIVO S/ 113,944 = PASIVO S/ 34,183 + PATRIMONIO S/ 79,761
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-title">Estado de situación financiera</div>
+          <div class="section-head" style="color:var(--rojo);font-size:12px">ACTIVO</div>
+          <table style="font-size:12px">
+            <tr><td style="color:var(--txt2)">Activo corriente</td><td></td></tr>
+            <tr><td style="padding-left:12px">Caja y bancos</td><td style="text-align:right">29,880</td></tr>
+            <tr><td style="padding-left:12px">Inventario insumos</td><td style="text-align:right">14,850</td></tr>
+            <tr><td style="padding-left:12px;font-weight:500">Total AC</td><td style="text-align:right;font-weight:500">44,730</td></tr>
+            <tr><td style="color:var(--txt2);padding-top:8px">Activo no corriente</td><td></td></tr>
+            <tr><td style="padding-left:12px">IME (bruto)</td><td style="text-align:right">75,424</td></tr>
+            <tr><td style="padding-left:12px">(-) Dep. acumulada</td><td style="text-align:right;color:var(--rojo-txt)">(1,622)</td></tr>
+            <tr><td style="padding-left:12px">Intangibles (neto)</td><td style="text-align:right">7,990</td></tr>
+            <tr><td style="padding-left:12px;font-weight:500">Total ANC</td><td style="text-align:right;font-weight:500">81,792</td></tr>
+            <tr style="border-top:0.5px solid var(--borde)"><td style="font-weight:500;padding-top:8px">TOTAL ACTIVO</td><td style="text-align:right;font-weight:500;color:var(--rojo)">113,944</td></tr>
+            <tr><td style="color:var(--txt2);padding-top:12px">Pasivo corriente</td><td></td></tr>
+            <tr><td style="padding-left:12px">Tributos por pagar</td><td style="text-align:right">4,116</td></tr>
+            <tr><td style="padding-left:12px">Obligaciones fin. CP</td><td style="text-align:right">9,348</td></tr>
+            <tr><td style="padding-left:12px;font-weight:500">Total PC</td><td style="text-align:right;font-weight:500">13,464</td></tr>
+            <tr><td style="color:var(--txt2);padding-top:8px">Pasivo no corriente</td><td></td></tr>
+            <tr><td style="padding-left:12px">Préstamo LP</td><td style="text-align:right">20,719</td></tr>
+            <tr style="border-top:0.5px solid var(--borde)"><td style="font-weight:500;padding-top:8px">TOTAL PASIVO</td><td style="text-align:right;font-weight:500;color:var(--rojo)">34,183</td></tr>
+            <tr><td style="color:var(--txt2);padding-top:12px">Patrimonio</td><td></td></tr>
+            <tr><td style="padding-left:12px">Capital social</td><td style="text-align:right">79,761</td></tr>
+            <tr><td style="padding-left:12px">Resultado ejercicio</td><td style="text-align:right">0</td></tr>
+            <tr style="border-top:0.5px solid var(--borde)"><td style="font-weight:500;padding-top:8px">TOTAL PAT.</td><td style="text-align:right;font-weight:500;color:var(--verde)">79,761</td></tr>
+            <tr style="background:var(--verde-bg)"><td style="font-weight:500;padding:6px;border-radius:4px">P + PAT =</td><td style="text-align:right;font-weight:500;color:var(--verde)">113,944 ✓</td></tr>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Estado de resultados — mes 1</div>
+          <table style="font-size:12px">
+            <tr><td>Ventas netas (excl. IGV)</td><td style="text-align:right">38,475</td></tr>
+            <tr><td style="color:var(--rojo-txt)">(-) Costo de ventas</td><td style="text-align:right;color:var(--rojo-txt)">(14,850)</td></tr>
+            <tr style="font-weight:500;background:var(--bg)"><td>Utilidad bruta</td><td style="text-align:right">23,625</td></tr>
+            <tr><td style="color:var(--txt2);font-size:11px">Margen bruto</td><td style="text-align:right;font-size:11px;color:var(--verde)">61.4%</td></tr>
+            <tr><td style="color:var(--rojo-txt);padding-top:8px">(-) Gasto adm. + planilla</td><td style="text-align:right;color:var(--rojo-txt)">(6,100)</td></tr>
+            <tr><td style="color:var(--rojo-txt)">(-) Alquiler</td><td style="text-align:right;color:var(--rojo-txt)">(4,500)</td></tr>
+            <tr><td style="color:var(--rojo-txt)">(-) Servicios</td><td style="text-align:right;color:var(--rojo-txt)">(1,200)</td></tr>
+            <tr><td style="color:var(--rojo-txt)">(-) Marketing</td><td style="text-align:right;color:var(--rojo-txt)">(800)</td></tr>
+            <tr><td style="color:var(--rojo-txt)">(-) Depreciación</td><td style="text-align:right;color:var(--rojo-txt)">(1,622)</td></tr>
+            <tr style="font-weight:500;background:var(--bg)"><td>EBIT (utilidad operativa)</td><td style="text-align:right">9,403</td></tr>
+            <tr><td style="color:var(--txt2);font-size:11px">EBITDA</td><td style="text-align:right;font-size:11px;color:var(--verde)">11,025</td></tr>
+            <tr><td style="color:var(--rojo-txt);padding-top:8px">(-) Gastos financieros</td><td style="text-align:right;color:var(--rojo-txt)">(527)</td></tr>
+            <tr style="font-weight:500;background:var(--bg)"><td>UAI</td><td style="text-align:right">8,876</td></tr>
+            <tr><td style="color:var(--rojo-txt)">(-) IR 10% (MYPE)</td><td style="text-align:right;color:var(--rojo-txt)">(258)</td></tr>
+            <tr style="font-weight:500;background:var(--verde-bg)"><td style="color:var(--verde)">Utilidad neta</td><td style="text-align:right;color:var(--verde)">8,618</td></tr>
+            <tr><td style="color:var(--txt2);font-size:11px">Margen neto</td><td style="text-align:right;font-size:11px;color:var(--verde)">22.4%</td></tr>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Flujo de caja proyectado — 6 meses</div>
+          <table style="font-size:12px">
+            <thead><tr><th>Mes</th><th>Ingresos</th><th>Egresos</th><th>Flujo neto</th><th>Acumulado</th></tr></thead>
+            <tbody>
+              <tr><td>Mes 1</td><td>38,475</td><td>29,857</td><td style="color:var(--verde)">+8,618</td><td style="color:var(--verde)">8,618</td></tr>
+              <tr><td>Mes 2</td><td>40,500</td><td>29,857</td><td style="color:var(--verde)">+10,643</td><td style="color:var(--verde)">19,261</td></tr>
+              <tr><td>Mes 3</td><td>43,200</td><td>30,200</td><td style="color:var(--verde)">+13,000</td><td style="color:var(--verde)">32,261</td></tr>
+              <tr><td>Mes 4</td><td>45,000</td><td>30,200</td><td style="color:var(--verde)">+14,800</td><td style="color:var(--verde)">47,061</td></tr>
+              <tr><td>Mes 5</td><td>46,800</td><td>30,500</td><td style="color:var(--verde)">+16,300</td><td style="color:var(--verde)">63,361</td></tr>
+              <tr><td>Mes 6</td><td>50,400</td><td>30,500</td><td style="color:var(--verde)">+19,900</td><td style="color:var(--verde)">83,261</td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top:14px;padding-top:14px;border-top:0.5px solid var(--borde)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+              <div><span style="color:var(--txt2)">Punto de equilibrio:</span><br><strong>S/ 24,222/mes</strong></div>
+              <div><span style="color:var(--txt2)">PRI (recuperación):</span><br><strong>13.2 meses</strong></div>
+              <div><span style="color:var(--txt2)">VAN (tasa 12%):</span><br><strong style="color:var(--verde)">S/ 48,320</strong></div>
+              <div><span style="color:var(--txt2)">TIR:</span><br><strong style="color:var(--verde)">34.8% anual</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRIBUTACIÓN -->
+    <div class="page" id="page-tributacion">
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi-card"><div class="kpi-label">Régimen activo</div><div class="kpi-val" style="font-size:14px;color:var(--rojo)">MYPE Tributario</div><div class="kpi-sub">Pago cuenta 1% mensual</div></div>
+        <div class="kpi-card"><div class="kpi-label">IGV débito fiscal</div><div class="kpi-val">S/ 6,916</div><div class="kpi-sub">18% ventas netas</div></div>
+        <div class="kpi-card"><div class="kpi-label">IGV crédito fiscal</div><div class="kpi-val verde">S/ 2,800</div><div class="kpi-sub">Compras con comprobante</div></div>
+        <div class="kpi-card"><div class="kpi-label">IGV neto a pagar</div><div class="kpi-val rojo">S/ 4,116</div><div class="kpi-sub">PDT 621</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Calendario de obligaciones SUNAT</div>
+          <div class="sunat-alert">
+            <strong>Próximo vencimiento — PDT 621</strong>
+            15/07/2026 — IGV + Renta mensual (S/ 4,116 + S/ 385)
+          </div>
+          <table style="font-size:12px">
+            <thead><tr><th>Declaración</th><th>Período</th><th>Vence</th><th>Monto est.</th><th>Estado</th></tr></thead>
+            <tbody>
+              <tr><td>PDT 621 (IGV-Renta)</td><td>Jun 2026</td><td>15 Jul</td><td>S/ 4,501</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+              <tr><td>PDT 601 (Planilla)</td><td>Jun 2026</td><td>20 Jul</td><td>S/ 6,100</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+              <tr><td>PDT 621 (IGV-Renta)</td><td>May 2026</td><td>15 Jun</td><td>S/ 4,180</td><td><span class="badge badge-verde">Declarado</span></td></tr>
+              <tr><td>PDT 601 (Planilla)</td><td>May 2026</td><td>20 Jun</td><td>S/ 6,100</td><td><span class="badge badge-verde">Declarado</span></td></tr>
+              <tr><td>Libro electrónico PLE</td><td>May 2026</td><td>25 Jun</td><td>—</td><td><span class="badge badge-verde">Enviado</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-title">Comparativo de regímenes fiscales</div>
+          <table style="font-size:12px">
+            <thead><tr><th>Régimen</th><th>Cálculo</th><th>Pago est.</th><th>Aplica?</th></tr></thead>
+            <tbody>
+              <tr><td>RUS Cat. 1</td><td>Cuota fija</td><td>S/ 20</td><td><span class="badge badge-rojo">No (ingresos altos)</span></td></tr>
+              <tr><td>RER</td><td>1.5% ingresos</td><td>S/ 577</td><td><span class="badge badge-amber">Posible</span></td></tr>
+              <tr><td><strong>MYPE Tributario</strong></td><td>1% a cuenta + 10% anual</td><td><strong>S/ 385</strong></td><td><span class="badge badge-verde">Activo ✓</span></td></tr>
+              <tr><td>Régimen General</td><td>29.5% renta neta</td><td>S/ 577</td><td><span class="badge badge-rojo">No conveniente</span></td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top:14px;padding-top:12px;border-top:0.5px solid var(--borde);font-size:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div><span style="color:var(--txt2)">UIT 2026</span><br><strong>S/ 5,500</strong></div>
+              <div><span style="color:var(--txt2)">Límite 15 UIT</span><br><strong>S/ 82,500 → tasa 10%</strong></div>
+              <div><span style="color:var(--txt2)">Pago a cuenta mensual</span><br><strong>1% sobre ingresos netos</strong></div>
+              <div><span style="color:var(--txt2)">IGV tasa</span><br><strong>18% (IGV 16% + IPM 2%)</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POS -->
+    <div class="page" id="page-pos">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Productos</div>
+          <div class="pos-grid" id="posGrid"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Orden actual</div>
+          <div class="order-list" id="orderList"><p style="color:var(--txt2);font-size:13px;text-align:center;padding:20px">Agrega productos</p></div>
+          <div id="orderSummary"></div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn-primary" style="flex:1" onclick="checkoutOrder()">Cobrar y emitir boleta</button>
+            <button class="btn-secondary" onclick="clearOrder()">Limpiar</button>
+          </div>
+          <div id="checkoutMsg" style="margin-top:8px;font-size:12px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVENTARIO -->
+    <div class="page" id="page-inventario">
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi-card"><div class="kpi-label">Valor total stock</div><div class="kpi-val">S/ 14,850</div><div class="kpi-sub">Costo prom. ponderado</div></div>
+        <div class="kpi-card"><div class="kpi-label">Ítems en stock</div><div class="kpi-val">8</div><div class="kpi-sub">Insumos activos</div></div>
+        <div class="kpi-card"><div class="kpi-label">Alertas stock mínimo</div><div class="kpi-val rojo">2</div><div class="kpi-sub">Requieren reposición</div></div>
+        <div class="kpi-card"><div class="kpi-label">Método valuación</div><div class="kpi-val" style="font-size:14px">CPP</div><div class="kpi-sub">Costo prom. ponderado</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Kardex de inventario</div>
+        <table>
+          <thead><tr><th>Insumo</th><th>Unidad</th><th>Stock</th><th>Mínimo</th><th>Costo unit.</th><th>Valor total</th><th>Proveedor</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td>Carne molida premium</td><td>kg</td><td>45</td><td>10</td><td>S/ 28.00</td><td>S/ 1,260</td><td>Makro</td><td><span class="badge badge-verde">OK</span></td></tr>
+            <tr><td>Pechuga de pollo</td><td>kg</td><td>30</td><td>10</td><td>S/ 14.00</td><td>S/ 420</td><td>Makro</td><td><span class="badge badge-verde">OK</span></td></tr>
+            <tr><td>Papas prefritas</td><td>kg</td><td>60</td><td>20</td><td>S/ 7.50</td><td>S/ 450</td><td>Makro</td><td><span class="badge badge-verde">OK</span></td></tr>
+            <tr><td>Pan de hamburguesa</td><td>unid.</td><td>200</td><td>50</td><td>S/ 1.20</td><td>S/ 240</td><td>Panadería local</td><td><span class="badge badge-verde">OK</span></td></tr>
+            <tr><td>Bolsas kraft con logo</td><td>unid.</td><td>180</td><td>100</td><td>S/ 0.90</td><td>S/ 162</td><td>Imprenta Trujillo</td><td><span class="badge badge-verde">OK</span></td></tr>
+            <tr><td>Salsas variadas (set 7)</td><td>litro</td><td>12</td><td>15</td><td>S/ 18.00</td><td>S/ 216</td><td>Makro</td><td><span class="badge badge-rojo">Reponer</span></td></tr>
+            <tr><td>Bebidas gaseosas</td><td>unid.</td><td>48</td><td>50</td><td>S/ 1.50</td><td>S/ 72</td><td>Arca Continental</td><td><span class="badge badge-rojo">Reponer</span></td></tr>
+            <tr><td>Aceite vegetal</td><td>litro</td><td>20</td><td>5</td><td>S/ 8.50</td><td>S/ 170</td><td>Makro</td><td><span class="badge badge-verde">OK</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FACTURACIÓN -->
+    <div class="page" id="page-facturacion">
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi-card"><div class="kpi-label">Boletas emitidas</div><div class="kpi-val verde">2,541</div><div class="kpi-sub">Serie B001</div></div>
+        <div class="kpi-card"><div class="kpi-label">Facturas emitidas</div><div class="kpi-val verde">24</div><div class="kpi-sub">Serie F001</div></div>
+        <div class="kpi-card"><div class="kpi-label">Pendientes CDR</div><div class="kpi-val rojo">3</div><div class="kpi-sub">Respuesta SUNAT</div></div>
+        <div class="kpi-card"><div class="kpi-label">Anuladas</div><div class="kpi-val">1</div><div class="kpi-sub">Nota de crédito</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Comprobantes electrónicos — últimos emitidos</div>
+        <table>
+          <thead><tr><th>Serie-N°</th><th>Tipo</th><th>Cliente</th><th>Emisión</th><th>Base imponible</th><th>IGV 18%</th><th>Total</th><th>CDR</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td>B001-2565</td><td>Boleta</td><td>Consumidor final</td><td>08/06/26 20:34</td><td>S/ 33.90</td><td>S/ 6.10</td><td>S/ 40.00</td><td><span class="badge badge-verde">Aceptado</span></td><td><span class="badge badge-verde">OK</span></td></tr>
+            <tr><td>B001-2564</td><td>Boleta</td><td>Consumidor final</td><td>08/06/26 20:18</td><td>S/ 19.49</td><td>S/ 3.51</td><td>S/ 23.00</td><td><span class="badge badge-verde">Aceptado</span></td><td><span class="badge badge-verde">OK</span></td></tr>
+            <tr><td>F001-0024</td><td>Factura</td><td>20601234567 — Corp. XYZ SAC</td><td>08/06/26 20:00</td><td>S/ 30.51</td><td>S/ 5.49</td><td>S/ 36.00</td><td><span class="badge badge-verde">Aceptado</span></td><td><span class="badge badge-verde">OK</span></td></tr>
+            <tr><td>B001-2563</td><td>Boleta</td><td>Consumidor final</td><td>08/06/26 19:55</td><td>S/ 33.05</td><td>S/ 5.95</td><td>S/ 39.00</td><td><span class="badge badge-verde">Aceptado</span></td><td><span class="badge badge-verde">OK</span></td></tr>
+            <tr><td>B001-2562</td><td>Boleta</td><td>Consumidor final</td><td>08/06/26 19:42</td><td>S/ 13.56</td><td>S/ 2.44</td><td>S/ 16.00</td><td><span class="badge badge-amber">Pendiente</span></td><td><span class="badge badge-amber">Enviado</span></td></tr>
+            <tr><td>NC01-0001</td><td>Nota crédito</td><td>Consumidor final</td><td>07/06/26 18:00</td><td>S/ -8.47</td><td>S/ -1.53</td><td>S/ -10.00</td><td><span class="badge badge-verde">Aceptado</span></td><td><span class="badge badge-verde">Anulada</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+const PRODUCTOS = [
+  {id:1,name:'Hmb. Carne Clásica',price:14,cost:5.5},
+  {id:2,name:'Hmb. Carne Premium',price:18,cost:7},
+  {id:3,name:'Hmb. Pollo Clásica',price:13,cost:5},
+  {id:4,name:'Hmb. Pollo Crispy',price:15,cost:5.8},
+  {id:5,name:'Smash Burger Doble',price:20,cost:8.5},
+  {id:6,name:'Salchipapa Clásica',price:9,cost:2.8},
+  {id:7,name:'Salchipapa Especial',price:12,cost:3.5},
+  {id:8,name:'Bebida gaseosa',price:4,cost:1.5},
+  {id:9,name:'Acomp. extra salsas',price:3,cost:0.8},
+];
+
+let order = [];
+let boleCounter = 2566;
+
+const pageMap = {
+  'dashboard':'Dashboard',
+  'inversion':'Inversión inicial',
+  'financiamiento':'Financiamiento',
+  'eeff':'Estados financieros',
+  'tributacion':'Tributación SUNAT',
+  'pos':'Punto de venta',
+  'inventario':'Inventario',
+  'facturacion':'Facturación electrónica',
+};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.getElementById('topbarTitle').textContent = pageMap[id] || id;
+  event.currentTarget.classList.add('active');
+}
+
+function pen(n) { return 'S/ ' + Math.round(n*100)/100..toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+
+function buildPos() {
+  const g = document.getElementById('posGrid');
+  g.innerHTML = PRODUCTOS.map(p =>
+    `<div class="pos-item" onclick="addToOrder(${p.id})">
+      <div class="pos-item-name">${p.name}</div>
+      <div class="pos-item-price">S/ ${p.price.toFixed(2)}</div>
+    </div>`
+  ).join('');
+}
+
+function addToOrder(id) {
+  const p = PRODUCTOS.find(x => x.id === id);
+  const ex = order.find(x => x.id === id);
+  if (ex) ex.qty++;
+  else order.push({...p, qty:1});
+  renderOrder();
+}
+
+function removeFromOrder(id) {
+  const ex = order.find(x => x.id === id);
+  if (!ex) return;
+  if (ex.qty > 1) ex.qty--;
+  else order = order.filter(x => x.id !== id);
+  renderOrder();
+}
+
+function renderOrder() {
+  const list = document.getElementById('orderList');
+  const sum = document.getElementById('orderSummary');
+  if (order.length === 0) {
+    list.innerHTML = '<p style="color:var(--txt2);font-size:13px;text-align:center;padding:20px">Agrega productos</p>';
+    sum.innerHTML = '';
+    return;
+  }
+  const total = order.reduce((a,x) => a + x.price * x.qty, 0);
+  const igv = total / 1.18 * 0.18;
+  const base = total - igv;
+  list.innerHTML = order.map(x =>
+    `<div class="order-row">
+      <span>${x.name} x${x.qty}</span>
+      <span style="display:flex;align-items:center;gap:8px">
+        <span>S/ ${(x.price*x.qty).toFixed(2)}</span>
+        <button class="btn-sm" onclick="removeFromOrder(${x.id})">-</button>
+      </span>
+    </div>`
+  ).join('');
+  sum.innerHTML = `
+    <div style="font-size:12px;color:var(--txt2);margin-top:8px">Base imponible: S/ ${base.toFixed(2)} + IGV: S/ ${igv.toFixed(2)}</div>
+    <div class="order-total"><span>Total</span><span style="color:var(--rojo)">S/ ${total.toFixed(2)}</span></div>`;
+}
+
+function clearOrder() { order = []; renderOrder(); document.getElementById('checkoutMsg').innerHTML = ''; }
+
+function checkoutOrder() {
+  if (!order.length) return;
+  const total = order.reduce((a,x) => a + x.price * x.qty, 0);
+  const msg = document.getElementById('checkoutMsg');
+  msg.innerHTML = `<span style="color:var(--verde)">✓ Boleta B001-${boleCounter++} emitida | Total: S/ ${total.toFixed(2)} | CDR SUNAT: Aceptado</span>`;
+  clearOrder();
+}
+
+function calcAmort() {
+  const monto = parseFloat(document.getElementById('sim-monto').value) || 0;
+  const tea = parseFloat(document.getElementById('sim-tea').value) / 100 || 0;
+  const n = parseInt(document.getElementById('sim-plazo').value) || 12;
+  const metodo = document.getElementById('sim-metodo').value;
+  const tem = Math.pow(1 + tea, 1/12) - 1;
+
+  let rows = [];
+  let totalInteres = 0, totalAmort = 0;
+
+  if (metodo === 'francesa') {
+    const cuota = monto * (tem * Math.pow(1+tem,n)) / (Math.pow(1+tem,n) - 1);
+    let saldo = monto;
+    for (let i = 1; i <= n; i++) {
+      const interes = saldo * tem;
+      const amort = cuota - interes;
+      const itf = cuota * 0.00005;
+      totalInteres += interes; totalAmort += amort;
+      rows.push({i, saldo, amort, interes, itf, cuota: cuota + itf, saldoFin: saldo - amort});
+      saldo -= amort;
+    }
+  } else if (metodo === 'alemana') {
+    const amortFija = monto / n;
+    let saldo = monto;
+    for (let i = 1; i <= n; i++) {
+      const interes = saldo * tem;
+      const cuota = amortFija + interes;
+      const itf = cuota * 0.00005;
+      totalInteres += interes; totalAmort += amortFija;
+      rows.push({i, saldo, amort: amortFija, interes, itf, cuota: cuota + itf, saldoFin: saldo - amortFija});
+      saldo -= amortFija;
+    }
+  } else {
+    let saldo = monto;
+    for (let i = 1; i <= n; i++) {
+      const interes = monto * tem;
+      const amort = i === n ? monto : 0;
+      const cuota = interes + amort;
+      const itf = cuota * 0.00005;
+      totalInteres += interes; totalAmort += amort;
+      rows.push({i, saldo, amort, interes, itf, cuota: cuota + itf, saldoFin: saldo - amort});
+    }
+  }
+
+  const resumen = document.getElementById('sim-resumen');
+  const cuotaRef = rows[0] ? rows[0].cuota : 0;
+  resumen.innerHTML = [
+    ['Cuota mes 1', pen(cuotaRef)],
+    ['Total intereses', pen(totalInteres)],
+    ['Total a pagar', pen(monto + totalInteres)],
+  ].map(([l,v]) => `<div style="background:var(--bg);padding:8px 12px;border-radius:7px;font-size:12px"><div style="color:var(--txt2);margin-bottom:2px">${l}</div><strong>${v}</strong></div>`).join('');
+
+  const d = new Date(2026, 0, 15);
+  const body = document.getElementById('scheduleBody');
+  body.innerHTML = rows.slice(0,60).map(r => {
+    const fecha = new Date(d); fecha.setMonth(d.getMonth() + r.i - 1);
+    const f = fecha.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit',year:'2-digit'});
+    return `<div class="schedule-row">
+      <span>${r.i}</span>
+      <span>${f}</span>
+      <span>S/ ${r.saldo.toFixed(0)}</span>
+      <span>S/ ${r.amort.toFixed(2)}</span>
+      <span>S/ ${r.interes.toFixed(2)}</span>
+      <span>S/ ${r.itf.toFixed(2)}</span>
+      <span style="font-weight:500">S/ ${r.cuota.toFixed(2)}</span>
+    </div>`;
+  }).join('');
+}
+
+buildPos();
+calcAmort();
+
+window.addEventListener('load', () => {
+  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const ventas = [32000,35000,36500,38000,38475,40500,43200,45000,46800,50400,52000,55000];
+
+  new Chart(document.getElementById('chartVentas'), {
+    type:'line',
+    data:{
+      labels: meses,
+      datasets:[{label:'Ventas S/',data:ventas,borderColor:'#8B0000',backgroundColor:'rgba(139,0,0,0.06)',tension:0.4,pointRadius:3,borderWidth:2}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'S/'+Math.round(v/1000)+'k',font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'}},x:{ticks:{font:{size:11}},grid:{display:false}}}}
+  });
+
+  new Chart(document.getElementById('chartInversion'), {
+    type:'doughnut',
+    data:{
+      labels:['Tangibles','Intangibles','K. Trabajo'],
+      datasets:[{data:[75424,8640,29880],backgroundColor:['#8B0000','#C9A84C','#888780'],borderWidth:0}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:10}}}}
+  });
+
+  new Chart(document.getElementById('chartTop'), {
+    type:'bar',
+    data:{
+      labels:['Smash Doble','H. Carne Prem.','H. Pollo Crispy','H. Carne Clás.','Salchipapa Esp.'],
+      datasets:[{label:'Ingresos S/',data:[9800,7200,5850,5200,3600],backgroundColor:'#8B0000',borderRadius:4}]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'}},y:{ticks:{font:{size:10}}}}}
+  });
+
+  new Chart(document.getElementById('chartFlujo'), {
+    type:'bar',
+    data:{
+      labels:['Mes 1','Mes 2','Mes 3','Mes 4','Mes 5','Mes 6'],
+      datasets:[
+        {label:'Ingresos',data:[38475,40500,43200,45000,46800,50400],backgroundColor:'rgba(139,0,0,0.15)',borderColor:'#8B0000',borderWidth:1.5,borderRadius:3},
+        {label:'Flujo neto',data:[8618,10643,13000,14800,16300,19900],backgroundColor:'rgba(59,109,17,0.15)',borderColor:'#3B6D11',borderWidth:1.5,borderRadius:3}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11},boxWidth:10}}},scales:{y:{ticks:{callback:v=>'S/'+Math.round(v/1000)+'k',font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'}},x:{ticks:{font:{size:10}},grid:{display:false}}}}
+  });
+});
+</script>
+</body>
+</html>
